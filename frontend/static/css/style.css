@@ -526,6 +526,29 @@ tbody tr:hover td { background: var(--cream-dark); }
   margin-top: 18px;
 }
 
+/* ─── Route drag list ─────────────────────────────────────────────────────── */
+.route-drag-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: var(--cream);
+  border: 1px solid var(--tan);
+  border-radius: 8px;
+  cursor: grab;
+  user-select: none;
+}
+.route-drag-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+.drag-handle {
+  color: var(--tan-dark);
+  font-size: 18px;
+  margin-right: 4px;
+  cursor: grab;
+}
+
 /* ─── Copyright Footer ────────────────────────────────────────────────────── */
 .site-footer {
   text-align: center;

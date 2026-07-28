@@ -5,6 +5,7 @@ let HEADERS = { 'Content-Type': 'application/json', 'x-api-key': API_KEY };
 let activeProject = null;
 let editingStationId = null;
 let editingStationIdx = null;
+let editingRouteTeamId = null;
 
 // ─── Login ─────────────────────────────────────────────────────────────────
 
@@ -348,7 +349,9 @@ function renderRoutes(p) {
         <div class="card" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <div style="font-family:var(--font-hand);font-size:17px">${t.name}</div>
-            <span style="font-size:11px;color:var(--tan-dark)">${route.length} stations</span>
+            <button class="btn btn-sm" onclick="openEditRoute('${t.id}')">
+              <i class="ti ti-route"></i> Edit route
+            </button>
           </div>
           <div class="route-pills">
             ${route.map((code, i) => {
@@ -360,6 +363,73 @@ function renderRoutes(p) {
         </div>`;
     }).join('')}
   `;
+}
+
+// ─── Route editing ─────────────────────────────────────────────────────────
+
+function openEditRoute(teamId) {
+  const team = activeProject.teams.find(t => t.id === teamId);
+  const stations = activeProject.stations || [];
+  editingRouteTeamId = teamId;
+  document.getElementById('route-modal-title').textContent = `Route — ${team.name}`;
+
+  const route = (team.route && team.route.length) ? team.route : stations.map(s => s.station_code);
+  // Build ordered list from route, appending any stations not yet in route
+  const inRoute = new Set(route);
+  const ordered = [...route, ...stations.map(s => s.station_code).filter(c => !inRoute.has(c))];
+
+  const list = document.getElementById('route-drag-list');
+  list.innerHTML = '';
+  ordered.forEach(code => {
+    const st = stations.find(s => s.station_code === code);
+    const item = document.createElement('div');
+    item.className = 'route-drag-item';
+    item.draggable = true;
+    item.dataset.code = code;
+    item.innerHTML = `
+      <span class="drag-handle">⠿</span>
+      <span class="rp" style="margin:0 8px">${code}</span>
+      <span style="flex:1;font-size:13px;color:var(--dark-mid)">${st ? st.name : ''}</span>
+      <div style="display:flex;gap:4px">
+        <button type="button" onclick="moveRouteItem(this,-1)" style="border:none;background:none;cursor:pointer;color:var(--dark-mid);font-size:16px;line-height:1">↑</button>
+        <button type="button" onclick="moveRouteItem(this,1)" style="border:none;background:none;cursor:pointer;color:var(--dark-mid);font-size:16px;line-height:1">↓</button>
+      </div>`;
+    // drag-and-drop events
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'move';
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      const dragging = list.querySelector('.dragging');
+      if (dragging && dragging !== item) {
+        const rect = item.getBoundingClientRect();
+        const mid = rect.top + rect.height / 2;
+        if (e.clientY < mid) list.insertBefore(dragging, item);
+        else list.insertBefore(dragging, item.nextSibling);
+      }
+    });
+    list.appendChild(item);
+  });
+
+  openModal('modal-route');
+}
+
+function moveRouteItem(btn, dir) {
+  const item = btn.closest('.route-drag-item');
+  const list = item.parentElement;
+  if (dir === -1 && item.previousSibling) list.insertBefore(item, item.previousSibling);
+  if (dir === 1 && item.nextSibling) list.insertBefore(item.nextSibling, item);
+}
+
+async function saveRoute() {
+  const list = document.getElementById('route-drag-list');
+  const route = Array.from(list.querySelectorAll('.route-drag-item')).map(el => el.dataset.code);
+  await api('PATCH', `/projects/${activeProject.id}/teams/${editingRouteTeamId}/route`, { route });
+  closeModal('modal-route');
+  await selectProject(activeProject.id);
+  showTab('routes', document.querySelectorAll('.tab-btn')[2]);
 }
 
 // ─── Teams ─────────────────────────────────────────────────────────────────

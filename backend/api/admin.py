@@ -266,6 +266,21 @@ def shuffle_routes(project_id: str, db: Session = Depends(get_db), user: str = D
     return {"ok": True, "routes": {t.name: t.route for t in p.teams}}
 
 
+class RouteUpdate(BaseModel):
+    route: list
+
+@router.patch("/projects/{project_id}/teams/{team_id}/route")
+def update_team_route(project_id: str, team_id: str, data: RouteUpdate,
+                      db: Session = Depends(get_db), user: str = Depends(require_api_key)):
+    _get_or_404_owned(db, project_id, user)
+    t = db.query(Team).filter_by(id=team_id, project_id=project_id).first()
+    if not t:
+        raise HTTPException(status_code=404, detail="Team not found")
+    t.route = data.route
+    db.commit()
+    return {"ok": True}
+
+
 # ─── Stations ─────────────────────────────────────────────────────────────────
 
 @router.get("/projects/{project_id}/stations")

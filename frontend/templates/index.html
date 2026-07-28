@@ -249,6 +249,19 @@
   </div>
 </div>
 
+<!-- ─── Edit Route Modal ───────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-route">
+  <div class="modal">
+    <div class="modal-title" id="route-modal-title">Edit route</div>
+    <div style="font-size:12px;color:var(--tan-dark);margin-bottom:12px">Drag or use ↑↓ to reorder stations</div>
+    <div id="route-drag-list"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveRoute()">Save route</button>
+      <button class="btn" onclick="closeModal('modal-route')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- ─── Add Team Modal ─────────────────────────────────────────────────────── -->
 <div class="modal-overlay" id="modal-team">
   <div class="modal">
