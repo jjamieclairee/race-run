@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Header, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
@@ -54,6 +55,22 @@ async def upload_image(file: UploadFile = File(...), x_api_key: str = Header(def
         with open(dest, "wb") as f:
             shutil.copyfileobj(file.file, f)
         return {"url": f"/static/uploads/{filename}"}
+
+
+@router.get("/media-proxy")
+async def media_proxy(url: str, key: str = ""):
+    """Proxy Twilio media URLs so the admin panel can display them without exposing credentials."""
+    from api.auth import verify_token
+    valid = key == os.getenv("ADMIN_API_KEY", "changeme") or bool(verify_token(key))
+    if not valid:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    if "twilio.com" not in url and "cloudinary.com" not in url:
+        raise HTTPException(status_code=400, detail="Invalid media URL")
+    import httpx
+    auth = (os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN")) if "twilio.com" in url else None
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url, auth=auth, timeout=15)
+    return StreamingResponse(iter([r.content]), media_type=r.headers.get("content-type", "image/jpeg"))
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────

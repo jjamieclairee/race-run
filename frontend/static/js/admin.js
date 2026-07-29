@@ -447,17 +447,23 @@ function renderPhotos(p) {
   return `
     <div style="font-family:var(--font-hand);font-size:18px;margin-bottom:16px">${photos.length} photo${photos.length !== 1 ? 's' : ''} submitted</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
-      ${photos.map(ph => `
+      ${photos.map(ph => {
+        const isCloudinary = ph.photo_url && ph.photo_url.includes('cloudinary.com');
+        const imgSrc = isCloudinary
+          ? ph.photo_url
+          : `${API}/media-proxy?url=${encodeURIComponent(ph.photo_url)}&key=${encodeURIComponent(API_KEY)}`;
+        return `
         <div style="background:var(--cream);border:1px solid var(--tan);border-radius:10px;overflow:hidden">
-          <a href="${ph.photo_url}" target="_blank">
-            <img src="${ph.photo_url}" style="width:100%;height:160px;object-fit:cover;display:block">
+          <a href="${imgSrc}" target="_blank">
+            <img src="${imgSrc}" style="width:100%;height:160px;object-fit:cover;display:block"
+                 onerror="this.style.display='none';this.nextSibling.style.display='flex'"
+                 onloadstart="this.setAttribute('headers','x-api-key: ${API_KEY}')">
           </a>
           <div style="padding:8px 10px">
             <div style="font-family:var(--font-hand);font-size:15px">${ph.team_name}</div>
             <div style="font-size:11px;color:var(--tan-dark)">Station ${ph.station_code}</div>
           </div>
-        </div>
-      `).join('')}
+        </div>`}).join('')}
     </div>`;
 }
 
