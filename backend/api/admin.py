@@ -455,6 +455,19 @@ def _project_dict(p: Project, detail=False):
     if detail:
         d["teams"] = [_team_dict(t) for t in p.teams]
         d["stations"] = [_station_dict(s) for s in p.stations]
+        # Collect all photo submissions across all teams
+        station_map = {s.id: s.station_code for s in p.stations}
+        photos = []
+        for t in p.teams:
+            for pr in t.progress:
+                if pr.photo_url:
+                    photos.append({
+                        "team_name": t.name,
+                        "station_code": station_map.get(pr.station_id, "?"),
+                        "photo_url": pr.photo_url,
+                        "submitted_at": pr.completed_at.isoformat() if pr.completed_at else None,
+                    })
+        d["photo_submissions"] = sorted(photos, key=lambda x: x["submitted_at"] or "", reverse=True)
     return d
 
 

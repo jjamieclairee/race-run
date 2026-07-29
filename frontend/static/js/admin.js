@@ -175,6 +175,7 @@ function renderContent(p) {
       <button class="tab-btn" onclick="showTab('routes', this)">Routes</button>
       <button class="tab-btn" onclick="showTab('teams', this)">Teams</button>
       <button class="tab-btn" onclick="showTab('scoring', this)">Scoring</button>
+      <button class="tab-btn" onclick="showTab('photos', this)">📸 Photos</button>
       <button class="tab-btn" onclick="showTab('logs', this)">Activity log</button>
     </div>
     <div id="tab-overview" class="tab-pane active">${renderOverview(p)}</div>
@@ -182,6 +183,7 @@ function renderContent(p) {
     <div id="tab-routes" class="tab-pane">${renderRoutes(p)}</div>
     <div id="tab-teams" class="tab-pane">${renderTeams(p)}</div>
     <div id="tab-scoring" class="tab-pane">${renderScoring(p)}</div>
+    <div id="tab-photos" class="tab-pane">${renderPhotos(p)}</div>
     <div id="tab-logs" class="tab-pane"><div id="logs-content">Loading...</div></div>
   `;
   updateFormula();
@@ -430,6 +432,33 @@ async function saveRoute() {
   closeModal('modal-route');
   await selectProject(activeProject.id);
   showTab('routes', document.querySelectorAll('.tab-btn')[2]);
+}
+
+// ─── Photos ────────────────────────────────────────────────────────────────
+
+function renderPhotos(p) {
+  const photos = p.photo_submissions || [];
+  if (!photos.length) {
+    return `<div class="empty-state">
+      <div class="empty-state-icon">📸</div>
+      <div class="empty-state-text">No photos submitted yet</div>
+    </div>`;
+  }
+  return `
+    <div style="font-family:var(--font-hand);font-size:18px;margin-bottom:16px">${photos.length} photo${photos.length !== 1 ? 's' : ''} submitted</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">
+      ${photos.map(ph => `
+        <div style="background:var(--cream);border:1px solid var(--tan);border-radius:10px;overflow:hidden">
+          <a href="${ph.photo_url}" target="_blank">
+            <img src="${ph.photo_url}" style="width:100%;height:160px;object-fit:cover;display:block">
+          </a>
+          <div style="padding:8px 10px">
+            <div style="font-family:var(--font-hand);font-size:15px">${ph.team_name}</div>
+            <div style="font-size:11px;color:var(--tan-dark)">Station ${ph.station_code}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
 }
 
 // ─── Teams ─────────────────────────────────────────────────────────────────
@@ -1258,7 +1287,7 @@ async function saveTeam() {
   closeModal('modal-team');
   ['t-name','t-leader','t-wa'].forEach(id => document.getElementById(id).value = '');
   await selectProject(activeProject.id);
-  showTab('teams', document.querySelectorAll('.tab-btn')[3]);
+  showTab('teams', document.querySelectorAll('.tab-btn')[4]);
 }
 
 async function deleteTeam(teamId) {

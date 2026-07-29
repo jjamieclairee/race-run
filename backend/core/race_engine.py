@@ -1,4 +1,5 @@
 import math
+import os
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,32 @@ from core.station_router import (
 )
 from core import whatsapp as wa
 from models.models import EventLog, Team, Project
+
+
+async def _save_to_cloudinary(twilio_url: str) -> str:
+    """Download photo from Twilio and upload to Cloudinary for permanent storage."""
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    if not cloud_name or not twilio_url:
+        return twilio_url
+    try:
+        import httpx
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        )
+        async with httpx.AsyncClient() as client:
+            r = await client.get(twilio_url, auth=(
+                os.getenv("TWILIO_ACCOUNT_SID"),
+                os.getenv("TWILIO_AUTH_TOKEN"),
+            ), timeout=15)
+        result = cloudinary.uploader.upload(r.content, folder="race-submissions")
+        return result["secure_url"]
+    except Exception as e:
+        print(f"[cloudinary photo upload failed, keeping twilio url] {e}")
+        return twilio_url
 
 
 # ─── Haversine helper ────────────────────────────────────────────────────────
@@ -442,7 +469,7 @@ async def _handle_photo(team: Team, project: Project, media_url: str, db: Sessio
         if steps and step_idx < len(steps) and steps[step_idx].photo_required:
             step = steps[step_idx]
             prog.photo_submitted = True
-            prog.photo_url = media_url
+            prog.photo_url = await _save_to_cloudinary(media_url)
             if step.answer:
                 # Text answer also required for this step — photo alone doesn't complete it
                 db.commit()
