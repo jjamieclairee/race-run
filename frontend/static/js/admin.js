@@ -1139,9 +1139,9 @@ function openEditStation(id, idx) {
   document.getElementById('s-hint-cost').value = s.hint_cost;
   document.getElementById('s-answer-cost').value = s.answer_cost;
   document.getElementById('s-photo').checked = s.photo_required;
-  if (s.clue_media_url) document.getElementById('s-media').value = s.clue_media_url;
-  if (s.gps_lat) document.getElementById('s-lat').value = s.gps_lat;
-  if (s.gps_lng) document.getElementById('s-lng').value = s.gps_lng;
+  document.getElementById('s-media').value = s.clue_media_url || '';
+  document.getElementById('s-lat').value = s.gps_lat || '';
+  document.getElementById('s-lng').value = s.gps_lng || '';
   document.getElementById('s-final').checked = s.is_final === true;
   // Load chain steps — migrate legacy single-step data if chain_steps array is empty
   const steps = (s.chain_steps && s.chain_steps.length > 0) ? s.chain_steps

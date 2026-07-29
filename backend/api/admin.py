@@ -15,9 +15,6 @@ router = APIRouter()
 
 # ─── Upload ───────────────────────────────────────────────────────────────────
 
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "static", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 ALLOWED = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
 @router.post("/upload")
@@ -34,13 +31,29 @@ async def upload_image(file: UploadFile = File(...), x_api_key: str = Header(def
     if file.content_type not in ALLOWED:
         raise HTTPException(status_code=400, detail="Only JPEG, PNG, GIF, WEBP allowed")
 
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    dest = os.path.join(UPLOAD_DIR, filename)
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    return {"url": f"/static/uploads/{filename}"}
+    # Upload to Cloudinary if configured, otherwise fall back to local storage
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+    if cloud_name:
+        import cloudinary
+        import cloudinary.uploader
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+        )
+        contents = await file.read()
+        result = cloudinary.uploader.upload(contents, folder="race-and-run")
+        return {"url": result["secure_url"]}
+    else:
+        # Local fallback (dev only — not accessible by Twilio)
+        upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "static", "uploads")
+        os.makedirs(upload_dir, exist_ok=True)
+        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        dest = os.path.join(upload_dir, filename)
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        return {"url": f"/static/uploads/{filename}"}
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
